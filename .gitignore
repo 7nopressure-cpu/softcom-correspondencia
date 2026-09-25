@@ -48,3 +48,6 @@ Thumbs.db
 
 # Temporary scripts
 build_zip.ps1
+
+.vercel
+.env*
