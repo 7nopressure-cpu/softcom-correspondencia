@@ -5,48 +5,43 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Iniciando inicialización limpia para SNOWPOINT HEALTHCARE - CONSULTORA EN SALUD...');
+  console.log('Iniciando sincronización para SNOWPOINT HEALTHCARE...');
 
-  // 1. Limpiar base de datos
-  await prisma.historialAccion.deleteMany();
-  await prisma.derivacion.deleteMany();
-  await prisma.adjunto.deleteMany();
-  await prisma.hojaRuta.deleteMany();
-  await prisma.usuario.deleteMany();
-  await prisma.unidad.deleteMany();
-
-  // 2. Crear Departamentos y Áreas de Consultoría en Salud
-  const dir = await prisma.unidad.create({
-    data: { nombre: 'Dirección Ejecutiva y General', sigla: 'DIR' },
+  const existingAdmin = await prisma.usuario.findFirst({
+    where: { username: 'admin' }
   });
 
-  const cam = await prisma.unidad.create({
-    data: { nombre: 'Consultoría y Auditoría Médica', sigla: 'CAM' },
-  });
+  if (existingAdmin) {
+    console.log('El usuario administrador ya existe. Saltando seed.');
+    return;
+  }
 
-  const gcal = await prisma.unidad.create({
-    data: { nombre: 'Gestión de Calidad y Acreditaciones Hospitalarias', sigla: 'GCAL' },
-  });
+  // 1. Crear Departamentos y Áreas de Consultoría en Salud
+  const unitsData = [
+    { nombre: 'Dirección Ejecutiva y General', sigla: 'DIR' },
+    { nombre: 'Consultoría y Auditoría Médica', sigla: 'CAM' },
+    { nombre: 'Gestión de Calidad y Acreditaciones Hospitalarias', sigla: 'GCAL' },
+    { nombre: 'Asesoría Legal y Regulatoria Sanitaria', sigla: 'ALEG' },
+    { nombre: 'Operaciones y Proyectos Hospitalarios', sigla: 'OPER' },
+    { nombre: 'Administración y Finanzas', sigla: 'ADM' },
+    { nombre: 'Sistemas y Tecnologías en Salud', sigla: 'TI' }
+  ];
 
-  const aleg = await prisma.unidad.create({
-    data: { nombre: 'Asesoría Legal y Regulatoria Sanitaria', sigla: 'ALEG' },
-  });
+  let tiUnitId = '';
+  for (const u of unitsData) {
+    const unit = await prisma.unidad.upsert({
+      where: { sigla: u.sigla },
+      update: { nombre: u.nombre },
+      create: { nombre: u.nombre, sigla: u.sigla }
+    });
+    if (u.sigla === 'TI') {
+      tiUnitId = unit.id;
+    }
+  }
 
-  const oper = await prisma.unidad.create({
-    data: { nombre: 'Operaciones y Proyectos Hospitalarios', sigla: 'OPER' },
-  });
+  console.log('Departamentos y Servicios de SnowPoint Healthcare listos.');
 
-  const adm = await prisma.unidad.create({
-    data: { nombre: 'Administración y Finanzas', sigla: 'ADM' },
-  });
-
-  const ti = await prisma.unidad.create({
-    data: { nombre: 'Sistemas y Tecnologías en Salud', sigla: 'TI' },
-  });
-
-  console.log('Departamentos y Servicios de SnowPoint Healthcare creados exitosamente.');
-
-  // 3. Crear ÚNICA Cuenta de Administrador Inicial
+  // 2. Crear ÚNICA Cuenta de Administrador Inicial
   const salt = bcrypt.genSaltSync(10);
   const passwordHash = bcrypt.hashSync('SnowPoint2026!', salt);
 
@@ -58,7 +53,7 @@ async function main() {
       nombre: 'Administrador de Sistemas',
       cargo: 'Administrador General de Plataforma',
       rol: Rol.ADMIN,
-      unidadId: ti.id,
+      unidadId: tiUnitId,
       active: true,
     },
   });
@@ -71,7 +66,7 @@ async function main() {
   console.log(`  Rol:        ADMINISTRADOR GENERAL`);
   console.log('================================================================');
   console.log('El Administrador puede dar de alta a los consultores, auditores');
-  console.log('médicos y especialistas desde el módulo "Gestión de Usuarios".');
+  console.log('médicos y especialistas desde el módulo "Gestión de Personal & Consultores".');
 }
 
 main()
