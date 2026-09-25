@@ -166,14 +166,21 @@ export const UserManagement: React.FC = () => {
   const getRoleBadge = (rol: string) => {
     switch (rol) {
       case 'ADMIN':
-        return <span className="px-2.5 py-1 text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 rounded-full">ADMINISTRADOR</span>;
+        return <span className="px-2.5 py-1 text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300 rounded-full">ADMINISTRADOR GENERAL</span>;
+      case 'DIRECTOR_EJECUTIVO':
       case 'DIRECCION':
-        return <span className="px-2.5 py-1 text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded-full">DIRECCIÓN EJECUTIVA</span>;
-      case 'ADMISION_ARCHIVO':
-        return <span className="px-2.5 py-1 text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-full">RECEPCIÓN & ARCHIVO</span>;
+        return <span className="px-2.5 py-1 text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-full">DIRECTOR GENERAL EJECUTIVO (CEO)</span>;
+      case 'JEFE_UNIDAD':
+        return <span className="px-2.5 py-1 text-xs font-bold bg-sky-100 text-sky-800 border border-sky-300 rounded-full">JEFE DE UNIDAD OPERATIVA</span>;
+      case 'CONSULTOR_SENIOR':
+        return <span className="px-2.5 py-1 text-xs font-bold bg-teal-100 text-teal-800 border border-teal-300 rounded-full">CONSULTOR SÉNIOR / AUDITOR</span>;
+      case 'CONSULTOR_ASOCIADO':
       case 'PERSONAL_HOSPITALARIO':
+        return <span className="px-2.5 py-1 text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full">CONSULTOR ASOCIADO / ANALISTA</span>;
+      case 'RECEPCION_DOCUMENTAL':
+      case 'ADMISION_ARCHIVO':
       default:
-        return <span className="px-2.5 py-1 text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200 rounded-full">CONSULTOR EN SALUD</span>;
+        return <span className="px-2.5 py-1 text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 rounded-full">GESTIÓN DOCUMENTAL & ARCHIVO</span>;
     }
   };
 
@@ -488,10 +495,12 @@ export const UserManagement: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, rol: e.target.value as any })}
                     className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-[#0f3d62] focus:outline-none"
                   >
-                    <option value="PERSONAL_HOSPITALARIO">Consultor en Salud / Auditor Médico</option>
-                    <option value="ADMISION_ARCHIVO">Recepción y Archivo de Proyectos</option>
-                    <option value="DIRECCION">Dirección Ejecutiva / Gerencia</option>
-                    <option value="ADMIN">Administrador de Sistemas</option>
+                    <option value="DIRECTOR_EJECUTIVO">Director General Ejecutivo (CEO) - DIR-EXE-001</option>
+                    <option value="JEFE_UNIDAD">Jefe de Unidad Operativa (DIG, CAL, EPI, ACA)</option>
+                    <option value="CONSULTOR_SENIOR">Consultor Sénior / Auditor Médico</option>
+                    <option value="CONSULTOR_ASOCIADO">Consultor Asociado / Analista / Bioestadístico</option>
+                    <option value="RECEPCION_DOCUMENTAL">Gestión Documental & Archivo Central</option>
+                    <option value="ADMIN">Administrador General de Sistemas</option>
                   </select>
                 </div>
               </div>

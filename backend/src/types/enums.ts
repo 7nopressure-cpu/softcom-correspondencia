@@ -1,19 +1,21 @@
 export enum Rol {
-  ADMIN = 'ADMIN',
-  ADMISION_ARCHIVO = 'ADMISION_ARCHIVO',
-  PERSONAL_HOSPITALARIO = 'PERSONAL_HOSPITALARIO',
-  DIRECCION = 'DIRECCION',
+  ADMIN = 'ADMIN',                               // Administrador General de Sistemas
+  DIRECTOR_EJECUTIVO = 'DIRECTOR_EJECUTIVO',     // Director General Ejecutivo (CEO) - DIR-EXE-001
+  JEFE_UNIDAD = 'JEFE_UNIDAD',                   // Jefe de Unidad Operativa (DIG, CAL, EPI, ACA)
+  CONSULTOR_SENIOR = 'CONSULTOR_SENIOR',         // Consultor Sénior / Auditor Médico
+  CONSULTOR_ASOCIADO = 'CONSULTOR_ASOCIADO',     // Consultor Asociado / Analista / Bioestadístico
+  RECEPCION_DOCUMENTAL = 'RECEPCION_DOCUMENTAL', // Gestión Documental, Recepción y Archivo
 }
 
 export enum TipoCorrespondencia {
-  INTERNA = 'INTERNA', // Trámites entre servicios, interconsultas, pedidos de farmacia, informes médicos
-  EXTERNA = 'EXTERNA', // Proveedores, seguros de salud, cartas institucionales, pacientes
+  INTERNA = 'INTERNA', // Dictámenes, auditorías médicas, informes técnicos, derivaciones entre unidades
+  EXTERNA = 'EXTERNA', // Hospitales clientes, directorios, clínicas, ASUSS, SEDES, Ministerio
 }
 
 export enum Prioridad {
   BAJA = 'BAJA',
   MEDIA = 'MEDIA',
-  ALTA = 'ALTA', // Urgencias médicas / requerimientos prioritarios
+  ALTA = 'ALTA', // Auditorías urgentes / Requerimientos normativos críticos
 }
 
 export enum EstadoHojaRuta {

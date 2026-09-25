@@ -96,52 +96,71 @@ export async function ensureDatabaseInitialized() {
       );
     `);
 
-    // 2. Check and Seed Admin & Units
-    const adminUser = await prisma.usuario.findFirst({
-      where: { username: 'admin' }
-    });
-
-    if (!adminUser) {
-      console.log('Provisioning SnowPoint Healthcare initial units and admin...');
-      
-      const unitsData = [
-        { id: 'dir-exec-01', nombre: 'Dirección Ejecutiva y General', sigla: 'DIR' },
-        { id: 'cam-audit-02', nombre: 'Consultoría y Auditoría Médica', sigla: 'CAM' },
-        { id: 'gcal-qual-03', nombre: 'Gestión de Calidad y Acreditaciones Hospitalarias', sigla: 'GCAL' },
-        { id: 'aleg-legal-04', nombre: 'Asesoría Legal y Regulatoria Sanitaria', sigla: 'ALEG' },
-        { id: 'oper-proj-05', nombre: 'Operaciones y Proyectos Hospitalarios', sigla: 'OPER' },
-        { id: 'adm-fin-06', nombre: 'Administración y Finanzas', sigla: 'ADM' },
-        { id: 'ti-tech-07', nombre: 'Sistemas y Tecnologías en Salud', sigla: 'TI' }
-      ];
-
-      for (const u of unitsData) {
-        await prisma.unidad.upsert({
-          where: { sigla: u.sigla },
-          update: { nombre: u.nombre },
-          create: { id: u.id, nombre: u.nombre, sigla: u.sigla }
-        });
+    // 2. Sincronizar Unidades Oficiales del MOF (MAN-002 Rev 2.0)
+    const unitsData = [
+      {
+        id: 'unit-dir-exe-001',
+        nombre: 'Dirección General Ejecutiva (Chief Executive Officer - CEO)',
+        sigla: 'DIR-EXE-001'
+      },
+      {
+        id: 'unit-jef-dig-002',
+        nombre: 'Unidad de Transformación Digital, Ingeniería de Datos y Software (Unidad 1)',
+        sigla: 'JEF-DIG-002'
+      },
+      {
+        id: 'unit-jef-cal-003',
+        nombre: 'Unidad de Planificación en Salud, Asesoría Normativa, Calidad y Seguridad del Paciente (Unidad 2)',
+        sigla: 'JEF-CAL-003'
+      },
+      {
+        id: 'unit-jef-epi-004',
+        nombre: 'Unidad de Gestión del Conocimiento y Epidemiología Avanzada (Unidad 3)',
+        sigla: 'JEF-EPI-004'
+      },
+      {
+        id: 'unit-jef-aca-005',
+        nombre: 'Unidad Académica, Posgrado y Educación Médica Continua (Unidad 4)',
+        sigla: 'JEF-ACA-005'
+      },
+      {
+        id: 'unit-adm-ti-006',
+        nombre: 'Gestión Documental, Recepción y Soporte de Plataforma TI',
+        sigla: 'ADM-TI-006'
       }
+    ];
 
-      const salt = bcrypt.genSaltSync(10);
-      const passwordHash = bcrypt.hashSync('SnowPoint2026!', salt);
-
-      await prisma.usuario.upsert({
-        where: { username: 'admin' },
-        update: { password: passwordHash, active: true },
-        create: {
-          id: 'admin-master-01',
-          username: 'admin',
-          email: 'admin@snowpoint.com.bo',
-          password: passwordHash,
-          nombre: 'Administrador de Sistemas',
-          cargo: 'Administrador General de Plataforma',
-          rol: 'ADMIN',
-          unidadId: 'ti-tech-07',
-          active: true
-        }
+    for (const u of unitsData) {
+      await prisma.unidad.upsert({
+        where: { sigla: u.sigla },
+        update: { nombre: u.nombre },
+        create: { id: u.id, nombre: u.nombre, sigla: u.sigla }
       });
-      console.log('Admin account created successfully: admin / SnowPoint2026!');
     }
+
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync('SnowPoint2026!', salt);
+
+    await prisma.usuario.upsert({
+      where: { username: 'admin' },
+      update: {
+        nombre: 'Dr. Germán Jr Navía Gutiérrez',
+        cargo: 'Director General Ejecutivo (CEO) & Administrador',
+        rol: 'ADMIN',
+        active: true
+      },
+      create: {
+        id: 'admin-master-01',
+        username: 'admin',
+        email: 'admin@snowpoint.com.bo',
+        password: passwordHash,
+        nombre: 'Dr. Germán Jr Navía Gutiérrez',
+        cargo: 'Director General Ejecutivo (CEO) & Administrador',
+        rol: 'ADMIN',
+        unidadId: 'unit-dir-exe-001',
+        active: true
+      }
+    });
 
     isInitialized = true;
   } catch (error) {
