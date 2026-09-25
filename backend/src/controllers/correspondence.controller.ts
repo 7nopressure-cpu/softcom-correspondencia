@@ -35,7 +35,7 @@ export const createCorrespondence = async (req: Request, res: Response) => {
     const files = req.files as Express.Multer.File[] || [];
 
     // Generación del número correlativo en transacción secuencial simple
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const year = new Date().getFullYear();
       const prefix = tipo === 'EXTERNA' ? 'EXT' : 'INT';
       
@@ -142,7 +142,7 @@ export const deriveCorrespondence = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // Buscar la derivación activa actual de esta Hoja de Ruta
       const activeDerivacion = await tx.derivacion.findFirst({
         where: {
@@ -222,7 +222,7 @@ export const acceptCorrespondence = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const activeDerivacion = await tx.derivacion.findFirst({
         where: {
           hojaRutaId: id,
@@ -279,7 +279,7 @@ export const archiveCorrespondence = async (req: Request, res: Response) => {
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const activeDerivacion = await tx.derivacion.findFirst({
         where: {
           hojaRutaId: id,
@@ -337,7 +337,7 @@ export const closeCorrespondence = async (req: Request, res: Response) => {
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const activeDerivacion = await tx.derivacion.findFirst({
         where: {
           hojaRutaId: id,
@@ -486,7 +486,7 @@ export const getBandejas = async (req: Request, res: Response) => {
     }
 
     // Aplanar respuesta para facilitar renderizado en frontend
-    const responseData = derivaciones.map((d) => {
+    const responseData = derivaciones.map((d: any) => {
       const hr = d.hojaRuta;
       return {
         derivacionId: d.id,

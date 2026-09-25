@@ -141,7 +141,7 @@ export const getCorrespondenceReportPdf = async (req: Request, res: Response) =>
     let rowY = tableY + 20;
     doc.fillColor('#000').font('Helvetica').fontSize(8);
 
-    hr.derivaciones.forEach((d, index) => {
+    hr.derivaciones.forEach((d: any, index: number) => {
       if (rowY > 700) {
         doc.addPage();
         tableY = doc.y + 10;
