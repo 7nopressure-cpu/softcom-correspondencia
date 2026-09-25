@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: softcom-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword2026
+      POSTGRES_DB: softcom
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: softcom-backend
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://postgres:postgrespassword2026@db:5432/softcom?schema=public
+      JWT_SECRET: softcom-secret-key-2026-bolivia-state
+      PORT: 4000
+      UPLOADS_DIR: /app/uploads
+    ports:
+      - "4000:4000"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: softcom-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  uploads_data:

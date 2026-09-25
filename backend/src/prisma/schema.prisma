@@ -1,0 +1,104 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Unidad {
+  id        String    @id @default(uuid())
+  nombre    String    @unique // e.g., Dirección Médica, Emergencias, Quirófano, Farmacia
+  sigla     String    @unique // e.g., DMED, EMERG, CIR, FARM
+  active    Boolean   @default(true)
+  usuarios  Usuario[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Usuario {
+  id            String            @id @default(uuid())
+  username      String            @unique
+  email         String            @unique
+  password      String
+  nombre        String
+  cargo         String            // e.g., Director Médico, Jefe de Emergencias, Cirujano, Bioquímica
+  rol           String            @default("PERSONAL_HOSPITALARIO") // ADMIN, ADMISION_ARCHIVO, PERSONAL_HOSPITALARIO, DIRECCION
+  unidadId      String
+  unidad        Unidad            @relation(fields: [unidadId], references: [id])
+  active        Boolean           @default(true)
+  hojasCreadas  HojaRuta[]        @relation("CreadorHojaRuta")
+  hojasInternas HojaRuta[]        @relation("RemitenteInterno")
+  derivados     Derivacion[]      @relation("RemitenteDerivacion")
+  recibidos     Derivacion[]      @relation("DestinatarioDerivacion")
+  adjuntos      Adjunto[]
+  auditorias    HistorialAccion[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+model HojaRuta {
+  id                   String            @id @default(uuid())
+  numero               String            @unique // HR-EXT-2026-00001 o HR-INT-2026-00001
+  tipo                 String            // INTERNA, EXTERNA
+  numeroReferencia     String?           // CITE externo, Código de Proveedor o Seguro
+  remitenteNombre      String?           // Para externo
+  remitenteCargo       String?           // Para externo
+  remitenteInstitucion String?           // e.g., Seguro de Salud, Proveedor de Insumos, Clínica
+  remitenteUsuarioId   String?           // Para interno (médico o administrativo)
+  remitenteUsuario     Usuario?          @relation("RemitenteInterno", fields: [remitenteUsuarioId], references: [id])
+  fechaRecepcion       DateTime          @default(now())
+  referencia           String            // Asunto o motivo de la correspondencia
+  prioridad            String            @default("MEDIA") // BAJA, MEDIA, ALTA
+  estadoActual         String            @default("PENDIENTE") // PENDIENTE, EN_PROCESO, ARCHIVADO, ATENDIDO
+  creadoPorId          String
+  creadoPor            Usuario           @relation("CreadorHojaRuta", fields: [creadoPorId], references: [id])
+  derivaciones         Derivacion[]
+  adjuntos             Adjunto[]
+  auditorias           HistorialAccion[]
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+}
+
+model Derivacion {
+  id              String    @id @default(uuid())
+  hojaRutaId      String
+  hojaRuta        HojaRuta  @relation(fields: [hojaRutaId], references: [id], onDelete: Cascade)
+  remitenteId     String
+  remitente       Usuario   @relation("RemitenteDerivacion", fields: [remitenteId], references: [id])
+  destinatarioId  String
+  destinatario    Usuario   @relation("DestinatarioDerivacion", fields: [destinatarioId], references: [id])
+  proveido        String    // Instrucción de trámite / interconsulta / revisión
+  fechaDerivacion DateTime  @default(now())
+  fechaRecepcion  DateTime?
+  estado          String    @default("PENDIENTE") // PENDIENTE, LEIDO, ARCHIVADO, ATENDIDO
+  active          Boolean   @default(true) // Indica si es el paso actual del flujo
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Adjunto {
+  id            String   @id @default(uuid())
+  hojaRutaId    String
+  hojaRuta      HojaRuta @relation(fields: [hojaRutaId], references: [id], onDelete: Cascade)
+  nombreArchivo String
+  pathArchivo   String
+  tipoMime      String
+  firmado       Boolean  @default(false)
+  firmaMetadata String?  // JSON con datos de firma digital médica
+  subidoPorId   String
+  subidoPor     Usuario  @relation(fields: [subidoPorId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model HistorialAccion {
+  id         String   @id @default(uuid())
+  hojaRutaId String
+  hojaRuta   HojaRuta @relation(fields: [hojaRutaId], references: [id], onDelete: Cascade)
+  usuarioId  String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  accion     String   // REGISTRO, DERIVACION, ACEPTACION, ARCHIVADO, ATENDIDO, VALIDACION_FIRMA
+  detalles   String?  // Información descriptiva de la acción
+  createdAt  DateTime @default(now())
+}
