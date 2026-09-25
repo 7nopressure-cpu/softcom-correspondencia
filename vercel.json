@@ -1,6 +1,6 @@
 {
   "framework": "vite",
-  "buildCommand": "npm --prefix backend install && npm --prefix backend run build && npm --prefix frontend install && npm --prefix frontend run build",
+  "buildCommand": "cd backend && npm install && npm run build && cd ../frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
