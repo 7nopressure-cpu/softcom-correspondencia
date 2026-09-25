@@ -56,11 +56,15 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`   SOFTCOM HOSPITAL AGRAMONT`);
-  console.log(`   Servidor en linea en el puerto: ${PORT}`);
-  console.log(`   URL Local: http://localhost:${PORT}`);
-  console.log(`   Directorio de Cargas: ${UPLOADS_DIR}`);
-  console.log(`====================================================`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(`   SOFTCOM - SNOWPOINT HEALTHCARE`);
+    console.log(`   Servidor en linea en el puerto: ${PORT}`);
+    console.log(`   URL Local: http://localhost:${PORT}`);
+    console.log(`   Directorio de Cargas: ${UPLOADS_DIR}`);
+    console.log(`====================================================`);
+  });
+}
+
+export default app;
