@@ -3,9 +3,13 @@ import path from 'path';
 import fs from 'fs';
 import { UPLOADS_DIR } from '../config';
 
-// Asegurarse de que el directorio de descargas existe
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// Asegurarse de que el directorio de descargas existe de forma segura
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Directorio de cargas:', UPLOADS_DIR, 'no se pudo crear estáticamente.');
 }
 
 const storage = multer.diskStorage({
