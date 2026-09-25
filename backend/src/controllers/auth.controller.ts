@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../config/db';
 import { JWT_SECRET } from '../config';
 import { AuthenticatedRequest } from '../middlewares/auth';
+import { ensureDatabaseInitialized } from '../services/db-init.service';
 
 export const login = async (req: Request, res: Response) => {
   const { username, password } = req.body;
@@ -13,6 +14,9 @@ export const login = async (req: Request, res: Response) => {
   }
 
   try {
+    // Asegurar que las tablas de PostgreSQL y el usuario admin estén inicializados
+    await ensureDatabaseInitialized();
+
     const user = await prisma.usuario.findUnique({
       where: { username },
       include: { unidad: true },

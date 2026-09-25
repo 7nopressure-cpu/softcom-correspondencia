@@ -4,7 +4,7 @@
   "description": "Backend API para el Sistema de Correspondencia Estatal SoftCom",
   "main": "dist/server.js",
   "scripts": {
-    "build": "prisma generate --schema=src/prisma/schema.prisma && prisma db push --schema=src/prisma/schema.prisma --accept-data-loss && ts-node src/prisma/seed.ts && tsc",
+    "build": "prisma generate --schema=src/prisma/schema.prisma && tsc",
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
     "prisma:generate": "prisma generate --schema=src/prisma/schema.prisma",
