@@ -14,7 +14,8 @@ import {
   X,
   CheckCircle2,
   AlertTriangle,
-  Briefcase
+  Briefcase,
+  Trash2
 } from 'lucide-react';
 
 interface Unit {
@@ -64,6 +65,10 @@ export const UserManagement: React.FC = () => {
   const [showResetModal, setShowResetModal] = useState<UserItem | null>(null);
   const [newPassword, setNewPassword] = useState('SnowPoint2026!');
   const [resetLoading, setResetLoading] = useState(false);
+
+  // Modal Eliminar Usuario
+  const [showDeleteModal, setShowDeleteModal] = useState<UserItem | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchUsersAndUnits = async () => {
     setLoading(true);
@@ -152,6 +157,27 @@ export const UserManagement: React.FC = () => {
       alert(err.response?.data?.message || 'Error al restablecer la contraseña.');
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleDeleteUserSubmit = async () => {
+    if (!showDeleteModal) return;
+
+    if (showDeleteModal.username === 'admin') {
+      alert('No es posible eliminar la cuenta principal de Administrador.');
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      const response = await api.delete(`/users/${showDeleteModal.id}`);
+      setSuccessMessage(response.data?.message || `Perfil de ${showDeleteModal.nombre} eliminado correctamente.`);
+      setShowDeleteModal(null);
+      await fetchUsersAndUnits();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error al eliminar el perfil del consultor.');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -375,18 +401,29 @@ export const UserManagement: React.FC = () => {
                         </button>
 
                         {u.username !== 'admin' && (
-                          <button
-                            onClick={() => handleToggleActive(u)}
-                            title={u.active ? 'Desactivar Usuario' : 'Activar Usuario'}
-                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                              u.active 
-                                ? 'border-red-200 text-red-700 hover:bg-red-50' 
-                                : 'border-teal-200 text-teal-700 hover:bg-teal-50'
-                            }`}
-                          >
-                            {u.active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
-                            {u.active ? 'Suspender' : 'Activar'}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleToggleActive(u)}
+                              title={u.active ? 'Desactivar Usuario' : 'Activar Usuario'}
+                              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                                u.active 
+                                  ? 'border-red-200 text-red-700 hover:bg-red-50' 
+                                  : 'border-teal-200 text-teal-700 hover:bg-teal-50'
+                              }`}
+                            >
+                              {u.active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                              {u.active ? 'Suspender' : 'Activar'}
+                            </button>
+
+                            <button
+                              onClick={() => setShowDeleteModal(u)}
+                              title="Eliminar Perfil Definitivamente"
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border border-red-200 text-red-700 hover:bg-red-600 hover:text-white"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Borrar
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -579,6 +616,63 @@ export const UserManagement: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL ELIMINAR USUARIO --- */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-red-200 max-w-md w-full overflow-hidden animate-scale-up">
+            <div className="bg-red-700 text-white p-4 flex justify-between items-center">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <Trash2 className="w-4 h-4" />
+                Eliminar Perfil de Consultor / Usuario
+              </h3>
+              <button onClick={() => setShowDeleteModal(null)} className="text-white hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="flex items-start gap-3 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-900 text-xs leading-relaxed">
+                <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block font-bold text-red-800 text-sm mb-1">¡Advertencia de Acción Irreversible!</strong>
+                  ¿Está seguro de eliminar permanentemente al usuario <strong>{showDeleteModal.nombre}</strong> (<code>@{showDeleteModal.username}</code>)?
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-600 space-y-1.5 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <div><strong>Cargo:</strong> {showDeleteModal.cargo}</div>
+                <div><strong>Unidad/Área:</strong> {showDeleteModal.unidad?.nombre} ({showDeleteModal.unidad?.sigla})</div>
+                <div><strong>Email:</strong> {showDeleteModal.email}</div>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Al confirmar, se eliminarán los accesos y registros asociados de forma segura en la base de datos de SnowPoint Healthcare.
+              </p>
+
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={deleteLoading}
+                  onClick={() => setShowDeleteModal(null)}
+                  className="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-lg text-sm font-semibold text-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteLoading}
+                  onClick={handleDeleteUserSubmit}
+                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold flex items-center gap-2 shadow"
+                >
+                  {deleteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Eliminar Definitivamente
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

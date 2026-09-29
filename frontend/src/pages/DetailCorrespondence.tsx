@@ -18,8 +18,12 @@ import {
   Calendar,
   X,
   Briefcase,
-  Award
+  Award,
+  Lock,
+  CheckCircle2,
+  Fingerprint
 } from 'lucide-react';
+import { decryptText, encryptText, isEncrypted, generateIntegrityHash } from '../services/crypto';
 
 interface Derivacion {
   id: string;
@@ -29,6 +33,7 @@ interface Derivacion {
   fechaDerivacion: string;
   fechaRecepcion: string | null;
   estado: string;
+  isEncrypted?: boolean;
 }
 
 interface Adjunto {
@@ -61,6 +66,7 @@ interface CorrespondenceDetail {
   remitenteUsuario: { nombre: string; cargo: string; unidad: { sigla: string } } | null;
   fechaRecepcion: string;
   referencia: string;
+  rawReferencia?: string;
   prioridad: 'BAJA' | 'MEDIA' | 'ALTA';
   estadoActual: string;
   creadoPor: { nombre: string; cargo: string; unidad: { nombre: string; sigla: string } };
@@ -71,6 +77,8 @@ interface CorrespondenceDetail {
   hasAccepted: boolean;
   activeDerivacionId: string | null;
   activeDerivacionEstado: string | null;
+  isE2EE?: boolean;
+  integrityHash?: string;
 }
 
 interface UserOption {
@@ -106,7 +114,29 @@ export const DetailCorrespondence: React.FC = () => {
     setLoading(true);
     try {
       const response = await api.get(`/correspondence/${id}`);
-      setData(response.data);
+      const rawData = response.data;
+
+      // Descifrado E2EE automático en el cliente
+      const decryptedReferencia = await decryptText(rawData.referencia);
+      const isE2EE = isEncrypted(rawData.referencia) || (rawData.derivaciones && rawData.derivaciones.some((d: any) => isEncrypted(d.proveido)));
+      const integrityHash = await generateIntegrityHash(decryptedReferencia);
+
+      const decryptedDerivaciones = await Promise.all(
+        (rawData.derivaciones || []).map(async (d: any) => ({
+          ...d,
+          isEncrypted: isEncrypted(d.proveido),
+          proveido: await decryptText(d.proveido),
+        }))
+      );
+
+      setData({
+        ...rawData,
+        referencia: decryptedReferencia,
+        rawReferencia: rawData.referencia,
+        isE2EE,
+        integrityHash,
+        derivaciones: decryptedDerivaciones
+      });
     } catch (err: any) {
       setError('Error al consultar los detalles de la correspondencia hospitalaria.');
     } finally {
@@ -152,7 +182,12 @@ export const DetailCorrespondence: React.FC = () => {
     }
     setModalLoading(true);
     try {
-      await api.post(`/correspondence/${id}/derive`, { destinatarioId, proveido });
+      let finalProveido = proveido;
+      if (data?.isE2EE) {
+        const enc = await encryptText(proveido);
+        finalProveido = enc.encryptedPayload;
+      }
+      await api.post(`/correspondence/${id}/derive`, { destinatarioId, proveido: finalProveido });
       setShowDeriveModal(false);
       setProveido('');
       await fetchDetail();
@@ -167,7 +202,12 @@ export const DetailCorrespondence: React.FC = () => {
     e.preventDefault();
     setModalLoading(true);
     try {
-      await api.post(`/correspondence/${id}/archive`, { proveido: comentarioCierre });
+      let finalProveido = comentarioCierre;
+      if (data?.isE2EE && comentarioCierre) {
+        const enc = await encryptText(comentarioCierre);
+        finalProveido = enc.encryptedPayload;
+      }
+      await api.post(`/correspondence/${id}/archive`, { proveido: finalProveido });
       setShowArchiveModal(false);
       setComentarioCierre('');
       await fetchDetail();
@@ -182,7 +222,12 @@ export const DetailCorrespondence: React.FC = () => {
     e.preventDefault();
     setModalLoading(true);
     try {
-      await api.post(`/correspondence/${id}/close`, { proveido: comentarioCierre });
+      let finalProveido = comentarioCierre;
+      if (data?.isE2EE && comentarioCierre) {
+        const enc = await encryptText(comentarioCierre);
+        finalProveido = enc.encryptedPayload;
+      }
+      await api.post(`/correspondence/${id}/close`, { proveido: finalProveido });
       setShowCloseModal(false);
       setComentarioCierre('');
       await fetchDetail();
@@ -262,10 +307,52 @@ export const DetailCorrespondence: React.FC = () => {
         {/* Left Side: General Info & Actions */}
         <div className="lg:col-span-2 space-y-6">
           
+          {/* E2EE Security Certificate Card */}
+          {data.isE2EE && (
+            <div className="p-4 bg-gradient-to-r from-[#0f3d62] via-[#134e4a] to-[#0f3d62] text-white rounded-2xl shadow-sm border border-teal-500/40">
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 bg-teal-400/20 text-teal-300 rounded-xl border border-teal-300/30 shrink-0 mt-0.5">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-sm text-white">Expediente Médico Protegido con Cifrado E2EE</span>
+                    <span className="px-2 py-0.5 text-[10px] font-mono bg-teal-400/20 text-teal-200 border border-teal-400/30 rounded-full font-bold">
+                      AES-GCM-256
+                    </span>
+                    <span className="px-2 py-0.5 text-[10px] font-sans bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Integridad Verificada
+                    </span>
+                  </div>
+                  <p className="text-xs text-teal-100/90 mt-1.5 leading-relaxed">
+                    Las notas clínicas, el asunto y los proveídos fueron cifrados con AES-256 antes de guardarse en el servidor y descifrados en este navegador.
+                  </p>
+                  {data.integrityHash && (
+                    <div className="mt-2.5 pt-2.5 border-t border-teal-700/60 flex items-center gap-2 text-[11px] text-teal-200 font-mono overflow-hidden">
+                      <Fingerprint className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                      <span className="shrink-0 text-slate-300">Hash SHA-256:</span>
+                      <span className="truncate text-white bg-black/20 px-2 py-0.5 rounded border border-teal-500/30 select-all">
+                        {data.integrityHash}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Metadata Card */}
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
             <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center">
-              <span className="font-bold text-[#0f4c81] text-sm">Resumen del Trámite Hospitalario</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[#0f4c81] text-sm">Resumen del Trámite Hospitalario</span>
+                {data.isE2EE && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 rounded-md">
+                    <Lock className="w-2.5 h-2.5 text-teal-600" />
+                    E2EE Protegido
+                  </span>
+                )}
+              </div>
               <span className={`px-2.5 py-0.5 text-xs font-bold border rounded-full ${getPriorityColor(data.prioridad)}`}>
                 {data.prioridad === 'ALTA' ? 'URGENCIA MÉDICA' : `Prioridad ${data.prioridad}`}
               </span>

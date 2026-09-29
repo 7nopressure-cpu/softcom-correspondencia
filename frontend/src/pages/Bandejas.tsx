@@ -9,11 +9,14 @@ import {
   AlertCircle, 
   CheckSquare, 
   FileText, 
-  ExternalLink,
-  Loader2,
-  Calendar,
-  Briefcase
+  ExternalLink, 
+  Loader2, 
+  Calendar, 
+  Briefcase,
+  Lock,
+  ShieldCheck
 } from 'lucide-react';
+import { decryptText, isEncrypted } from '../services/crypto';
 
 interface CorrespondenceRow {
   derivacionId: string;
@@ -31,6 +34,7 @@ interface CorrespondenceRow {
   fechaDerivacion: string;
   fechaAceptacionDerivacion: string | null;
   estadoDerivacion: string;
+  isE2EE?: boolean;
 }
 
 export const Bandejas: React.FC = () => {
@@ -53,7 +57,16 @@ export const Bandejas: React.FC = () => {
     setError('');
     try {
       const response = await api.get(`/correspondence/bandeja/${activeTab}`);
-      setItems(response.data);
+      const rawRows: any[] = response.data;
+      const decryptedRows: CorrespondenceRow[] = await Promise.all(
+        rawRows.map(async (row) => ({
+          ...row,
+          isE2EE: isEncrypted(row.referencia) || isEncrypted(row.proveido),
+          referencia: await decryptText(row.referencia),
+          proveido: await decryptText(row.proveido),
+        }))
+      );
+      setItems(decryptedRows);
     } catch (err: any) {
       setError('Error al conectar con el servidor para obtener la correspondencia hospitalaria.');
     } finally {
@@ -201,8 +214,14 @@ export const Bandejas: React.FC = () => {
                     </td>
 
                     <td className="py-4 px-6 max-w-xs">
-                      <div className="text-slate-700 font-medium line-clamp-2 leading-relaxed">
-                        {item.referencia}
+                      <div className="text-slate-700 font-medium line-clamp-2 leading-relaxed flex items-start gap-1.5">
+                        {item.isE2EE && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold bg-teal-50 text-teal-700 border border-teal-200 rounded shrink-0 mt-0.5" title="Cifrado de Extremo a Extremo AES-256-GCM">
+                            <Lock className="w-2.5 h-2.5 text-teal-600" />
+                            E2EE
+                          </span>
+                        )}
+                        <span>{item.referencia}</span>
                       </div>
                       {item.proveido && (
                         <div className="text-xs text-slate-500 bg-sky-50/50 border border-sky-100 rounded px-2 py-1 mt-1 line-clamp-1 italic">

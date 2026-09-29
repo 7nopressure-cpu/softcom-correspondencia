@@ -116,9 +116,13 @@ export const getCorrespondenceReportPdf = async (req: Request, res: Response) =>
     doc.font('Helvetica-Bold').text('Remitente:', 300, startY + 28);
     doc.text(remitenteTxt, 300, startY + 40, { width: 260 });
     
+    const cleanReferencia = hr.referencia.startsWith('ENC:') 
+      ? '[Expediente Clínico Confidencial - Cifrado E2EE AES-GCM-256]' 
+      : hr.referencia;
+
     doc.font('Helvetica').text(`Referencia / CITE Ext: ${hr.numeroReferencia || 'S/N'}`, 46, startY + 95, { width: 240 });
     doc.font('Helvetica-Bold').text('Asunto / Proyecto:', 300, startY + 73);
-    doc.font('Helvetica-Oblique').text(hr.referencia, 300, startY + 85, { width: 260 });
+    doc.font('Helvetica-Oblique').text(cleanReferencia, 300, startY + 85, { width: 260 });
 
     doc.moveDown(5);
     doc.y = startY + 150;
@@ -162,12 +166,16 @@ export const getCorrespondenceReportPdf = async (req: Request, res: Response) =>
         doc.fillColor('#000');
       }
 
+      const provTxt = d.proveido.startsWith('ENC:')
+        ? '[Proveído Cifrado E2EE]'
+        : (d.proveido.length > 50 ? d.proveido.substring(0, 47) + '...' : d.proveido);
+
       doc.text(String(index + 1), 42, rowY + 8);
       doc.text(`${d.remitente.nombre.split(' ')[0]} ${d.remitente.nombre.split(' ')[1] || ''}\n[${d.remitente.unidad.sigla}]`, 70, rowY + 4, { width: 120 });
       doc.text(`${d.destinatario.nombre.split(' ')[0]} ${d.destinatario.nombre.split(' ')[1] || ''}\n[${d.destinatario.unidad.sigla}]`, 200, rowY + 4, { width: 120 });
       doc.text(new Date(d.fechaDerivacion).toLocaleDateString('es-BO'), 330, rowY + 8);
       doc.text(d.fechaRecepcion ? new Date(d.fechaRecepcion).toLocaleDateString('es-BO') : 'PENDIENTE', 420, rowY + 8);
-      doc.text(d.proveido.length > 50 ? d.proveido.substring(0, 47) + '...' : d.proveido, 500, rowY + 8, { width: 70 });
+      doc.text(provTxt, 500, rowY + 8, { width: 70 });
 
       rowY += 24;
     });

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Lock, User, KeyRound, Server, Stethoscope, ShieldCheck, Briefcase } from 'lucide-react';
+import { Lock, User, KeyRound, Server, ShieldCheck, Briefcase } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -27,27 +27,6 @@ export const Login: React.FC = () => {
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al conectar con el servidor de SnowPoint Healthcare.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdminQuickLogin = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await api.post('/auth/login', { 
-        username: 'admin',
-        password: 'SnowPoint2026!'
-      });
-      
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al autenticar con la cuenta de Administrador.');
     } finally {
       setLoading(false);
     }
@@ -174,30 +153,12 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 bg-[#0f3d62] hover:bg-[#0a2e52] text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md"
+                className="w-full py-2.5 bg-[#0f3d62] hover:bg-[#0a2e52] text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md mt-2"
               >
                 {authType === 'ldap' ? <Server className="w-4 h-4" /> : <KeyRound className="w-4 h-4" />}
                 {loading ? 'Iniciando sesión...' : 'Ingresar a SnowPoint SoftCom'}
               </button>
             </form>
-
-            <div className="relative my-5">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-slate-400 font-bold">Acceso Directo</span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleAdminQuickLogin}
-              disabled={loading}
-              className="w-full py-2 bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow"
-            >
-              <Stethoscope className="w-4 h-4 text-teal-200" />
-              Acceso Rápido Administrador (admin)
-            </button>
           </div>
 
           <p className="text-[10px] text-center text-slate-400 mt-6 leading-relaxed">

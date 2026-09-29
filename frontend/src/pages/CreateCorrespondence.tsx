@@ -10,8 +10,11 @@ import {
   Loader2,
   Users,
   AlertTriangle,
-  Briefcase
+  Briefcase,
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
+import { encryptText } from '../services/crypto';
 
 interface UserOption {
   id: string;
@@ -97,6 +100,9 @@ export const CreateCorrespondence: React.FC = () => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const [e2eeEnabled, setE2eeEnabled] = useState(true);
+  const [e2eeStatus, setE2eeStatus] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!referencia.trim()) {
@@ -112,27 +118,38 @@ export const CreateCorrespondence: React.FC = () => {
     setSubmitLoading(true);
     setError('');
 
-    const formData = new FormData();
-    formData.append('tipo', tipo);
-    formData.append('referencia', referencia);
-    formData.append('prioridad', prioridad);
-    formData.append('destinatarioId', destinatarioId);
-    formData.append('proveido', proveido || 'Registro de trámite hospitalario');
-
-    if (tipo === 'EXTERNA') {
-      formData.append('remitenteNombre', remitenteNombre);
-      formData.append('remitenteCargo', remitenteCargo);
-      formData.append('remitenteInstitucion', remitenteInstitucion);
-      formData.append('numeroReferencia', numeroReferencia);
-    } else {
-      formData.append('remitenteUsuarioId', remitenteUsuarioId);
-    }
-
-    selectedFiles.forEach(file => {
-      formData.append('files', file);
-    });
-
     try {
+      let finalReferencia = referencia;
+      let finalProveido = proveido || 'Registro de trámite hospitalario / consultoría médica';
+
+      if (e2eeEnabled) {
+        setE2eeStatus('Cifrando con AES-GCM 256-bit y generando hash de integridad SHA-256...');
+        const encRef = await encryptText(referencia);
+        const encProv = await encryptText(finalProveido);
+        finalReferencia = encRef.encryptedPayload;
+        finalProveido = encProv.encryptedPayload;
+      }
+
+      const formData = new FormData();
+      formData.append('tipo', tipo);
+      formData.append('referencia', finalReferencia);
+      formData.append('prioridad', prioridad);
+      formData.append('destinatarioId', destinatarioId);
+      formData.append('proveido', finalProveido);
+
+      if (tipo === 'EXTERNA') {
+        formData.append('remitenteNombre', remitenteNombre);
+        formData.append('remitenteCargo', remitenteCargo);
+        formData.append('remitenteInstitucion', remitenteInstitucion);
+        formData.append('numeroReferencia', numeroReferencia);
+      } else {
+        formData.append('remitenteUsuarioId', remitenteUsuarioId);
+      }
+
+      selectedFiles.forEach(file => {
+        formData.append('files', file);
+      });
+
       await api.post('/correspondence', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -143,6 +160,7 @@ export const CreateCorrespondence: React.FC = () => {
       setError(err.response?.data?.message || 'Error al guardar la correspondencia hospitalaria.');
     } finally {
       setSubmitLoading(false);
+      setE2eeStatus('');
     }
   };
 
@@ -409,6 +427,43 @@ export const CreateCorrespondence: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* SECCIÓN SEGURIDAD & CIFRADO E2EE */}
+            <div className="p-4 bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-200 rounded-xl">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-teal-600 text-white rounded-lg shadow-sm mt-0.5">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-teal-900 flex items-center gap-2">
+                      Cifrado de Extremo a Extremo (E2EE) Activo
+                      <span className="px-2 py-0.5 text-[10px] font-mono bg-teal-200 text-teal-900 font-bold rounded">AES-GCM 256-bit</span>
+                    </h4>
+                    <p className="text-xs text-teal-800 mt-1 leading-relaxed">
+                      El contenido clínico, notas médicas, asunto y proveídos se cifran en tu navegador antes de transmitirse al servidor.
+                      Solo el personal autorizado y destinatarios con acceso al expediente podrán descifrar la información.
+                    </p>
+                    {e2eeStatus && (
+                      <p className="text-xs font-semibold text-teal-700 mt-2 flex items-center gap-1.5 animate-pulse">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        {e2eeStatus}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                  <input
+                    type="checkbox"
+                    checked={e2eeEnabled}
+                    onChange={(e) => setE2eeEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                </label>
+              </div>
             </div>
           </div>
 

@@ -137,7 +137,7 @@ export const resetUserPassword = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { newPassword } = req.body;
 
-  const passwordToSet = newPassword || 'Agramont2026!';
+  const passwordToSet = newPassword || 'SnowPoint2026!';
 
   try {
     const user = await prisma.usuario.findUnique({ where: { id } });
@@ -157,5 +157,34 @@ export const resetUserPassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Error al restablecer contraseña.' });
+  }
+};
+
+export const deleteUser = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const user = await prisma.usuario.findUnique({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    if (user.username === 'admin') {
+      return res.status(400).json({ message: 'No es posible eliminar la cuenta principal de Administrador.' });
+    }
+
+    // Eliminación limpia en transacción
+    await prisma.$transaction(async (tx: any) => {
+      await tx.historialAccion.deleteMany({ where: { usuarioId: id } });
+      await tx.adjunto.deleteMany({ where: { subidoPorId: id } });
+      await tx.derivacion.deleteMany({ where: { OR: [{ remitenteId: id }, { destinatarioId: id }] } });
+      await tx.hojaRuta.deleteMany({ where: { OR: [{ creadoPorId: id }, { remitenteUsuarioId: id }] } });
+      await tx.usuario.delete({ where: { id } });
+    });
+
+    return res.json({ message: `El perfil de ${user.nombre} (@${user.username}) ha sido eliminado permanentemente.` });
+  } catch (error: any) {
+    console.error('Error al eliminar usuario:', error);
+    return res.status(500).json({ message: error.message || 'Error al eliminar el perfil del usuario.' });
   }
 };
